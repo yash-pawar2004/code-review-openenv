@@ -1,0 +1,87 @@
+name: code_review_env
+version: "1.0.0"
+description: >
+  A reinforcement learning environment that simulates code review tasks.
+  The agent receives a code snippet with an issue and must identify the problem.
+entrypoint: server.app:app
+health_check: /health
+
+interface:
+  reset:
+    method: POST
+    path: /reset
+    returns: CodeObservation
+
+  step:
+    method: POST
+    path: /step
+    body:
+      review: string
+    returns: StepResult
+
+  state:
+    method: GET
+    path: /state
+    returns: CodeState
+
+observation_space:
+  type: object
+  fields:
+    code:
+      type: string
+      description: Code snippet under review
+    task:
+      type: string
+      description: Review category (style, bug, security)
+    description:
+      type: string
+      description: Instructions for the agent
+    difficulty:
+      type: string
+      description: Difficulty label for the current review task
+    step:
+      type: integer
+      description: Current phase of the 3-step review episode
+
+action_space:
+  type: object
+  fields:
+    review:
+      type: string
+      description: Agent review comment describing the issue
+
+reward:
+  min: 0.0
+  max: 1.0
+  type: float
+  description: >
+    Reward is deterministic and step-weighted:
+    Step 1 (identify issue) -> 0.3
+    Step 2 (explain issue) -> 0.3
+    Step 3 (suggest fix) -> 0.4
+    Some tasks include verifier-based checks for controlled bug detection.
+
+tasks:
+  - name: style
+    difficulty: easy
+    description: Detect inefficient or non-idiomatic Python style.
+    keyword: enumerate
+
+  - name: bug
+    difficulty: medium
+    description: Identify potential runtime bugs.
+    keyword: zero
+
+  - name: security
+    difficulty: hard
+    description: Detect security vulnerabilities.
+    keyword: sql injection
+
+episode:
+  max_steps: 3
+  done_after_first_step: false
+
+deployment:
+  type: docker
+  port: 8000
+  health_check: /health
