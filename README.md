@@ -4,7 +4,7 @@ emoji: 🔍
 colorFrom: blue
 colorTo: green
 sdk: docker
-app_port: 8000
+app_port: 7860
 pinned: false
 ---
 
@@ -289,7 +289,7 @@ pip install fastapi uvicorn pydantic requests openai
 ### Run the server
 
 ```bash
-uvicorn server.app:app --host 0.0.0.0 --port 8000
+uvicorn server.app:app --host 0.0.0.0 --port 7860
 ```
 
 ### Test with the Python client
@@ -297,7 +297,7 @@ uvicorn server.app:app --host 0.0.0.0 --port 8000
 ```python
 from client import CodeReviewClient
 
-client = CodeReviewClient("http://localhost:8000")
+client = CodeReviewClient("http://localhost:7860")
 obs = client.reset()
 print(obs)
 result = client.step("This code is vulnerable to SQL injection. Use parameterized queries.")
@@ -317,7 +317,7 @@ docker build -t code-review-env .
 ### Run
 
 ```bash
-docker run -p 8000:8000 code-review-env
+docker run -p 7860:7860 code-review-env
 ```
 
 ---

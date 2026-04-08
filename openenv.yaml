@@ -83,5 +83,5 @@ episode:
 
 deployment:
   type: docker
-  port: 8000
+  port: 7860
   health_check: /health

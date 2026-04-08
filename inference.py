@@ -14,7 +14,7 @@ from client import CodeReviewClient
 
 TASK_NAME = "code_review"
 ENV_NAME = "code_review_env"
-ENV_URL = os.getenv("ENV_URL", "http://localhost:8000")
+ENV_URL = os.getenv("ENV_URL", "http://localhost:7860")
 MODEL_NAME = os.getenv("MODEL_NAME", "gpt-4o-mini")
 API_BASE_URL = os.getenv("API_BASE_URL", "https://api.openai.com/v1")
 API_TOKEN = os.getenv("HF_TOKEN") or os.getenv("OPENAI_API_KEY")
