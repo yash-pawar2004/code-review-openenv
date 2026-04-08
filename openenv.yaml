@@ -62,20 +62,23 @@ reward:
     Some tasks include verifier-based checks for controlled bug detection.
 
 tasks:
-  - name: style
-    difficulty: easy
-    description: Detect inefficient or non-idiomatic Python style.
-    keyword: enumerate
-
-  - name: bug
-    difficulty: medium
-    description: Identify potential runtime bugs.
-    keyword: zero
-
-  - name: security
+  - name: code_review_security
+    task_type: security
     difficulty: hard
-    description: Detect security vulnerabilities.
-    keyword: sql injection
+    description: Detect security vulnerabilities in code review comments.
+    grader: server.environment:grade_security_task
+
+  - name: code_review_logic
+    task_type: bug
+    difficulty: medium
+    description: Identify logic and runtime bugs from code review comments.
+    grader: server.environment:grade_logic_task
+
+  - name: code_review_style
+    task_type: style
+    difficulty: easy
+    description: Detect style and readability issues from code review comments.
+    grader: server.environment:grade_style_task
 
 episode:
   max_steps: 3

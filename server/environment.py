@@ -285,6 +285,110 @@ def grade(review: str, keywords: list[str], synonyms: Optional[list[str]] = None
     return 0.0
 
 
+def clamp_task_score(score: float) -> float:
+    return max(0.01, min(float(score), 0.99))
+
+
+def _extract_review_text(*args: Any, **kwargs: Any) -> str:
+    # Support multiple grader call shapes used by validators.
+    candidate_values: list[Any] = []
+    candidate_values.extend(args)
+    candidate_values.extend(
+        [
+            kwargs.get("review"),
+            kwargs.get("response"),
+            kwargs.get("prediction"),
+            kwargs.get("answer"),
+            kwargs.get("text"),
+        ]
+    )
+
+    for value in candidate_values:
+        if isinstance(value, str):
+            return value.lower()
+        if isinstance(value, dict):
+            for key in ("review", "response", "prediction", "answer", "text"):
+                field_value = value.get(key)
+                if isinstance(field_value, str):
+                    return field_value.lower()
+    return ""
+
+
+def _contains_any(text: str, phrases: list[str]) -> bool:
+    return any(phrase in text for phrase in phrases)
+
+
+def grade_security_task(*args: Any, **kwargs: Any) -> float:
+    review = _extract_review_text(*args, **kwargs)
+    if _contains_any(
+        review,
+        [
+            "sql injection",
+            "command injection",
+            "path traversal",
+            "shell=true",
+            "unsafe shell",
+            "hardcoded password",
+            "hardcoded api key",
+            "insecure deserialization",
+            "eval",
+        ],
+    ):
+        return clamp_task_score(0.99)
+    if _contains_any(review, ["security", "vulnerability", "unsafe", "attack", "risk"]):
+        return clamp_task_score(0.6)
+    return clamp_task_score(0.01)
+
+
+def grade_logic_task(*args: Any, **kwargs: Any) -> float:
+    review = _extract_review_text(*args, **kwargs)
+    if _contains_any(
+        review,
+        [
+            "division by zero",
+            "mutable default",
+            "index error",
+            "off by one",
+            "missing return",
+            "infinite loop",
+            "unboundlocalerror",
+            "scope",
+            "mutating while iterating",
+        ],
+    ):
+        return clamp_task_score(0.99)
+    if _contains_any(review, ["bug", "error", "crash", "issue", "problem"]):
+        return clamp_task_score(0.6)
+    return clamp_task_score(0.01)
+
+
+def grade_style_task(*args: Any, **kwargs: Any) -> float:
+    review = _extract_review_text(*args, **kwargs)
+    if _contains_any(
+        review,
+        [
+            "enumerate",
+            "list comprehension",
+            "unused variable",
+            "debug print",
+            "boolean comparison",
+            "string concatenation",
+            "readability",
+        ],
+    ):
+        return clamp_task_score(0.99)
+    if _contains_any(review, ["style", "clean", "readable", "refactor", "idiomatic"]):
+        return clamp_task_score(0.6)
+    return clamp_task_score(0.01)
+
+
+TASK_GRADERS = {
+    "security": grade_security_task,
+    "bug": grade_logic_task,
+    "style": grade_style_task,
+}
+
+
 def verify_division_by_zero() -> bool:
     try:
         def divide(a, b):
@@ -408,6 +512,14 @@ class CodeReviewEnv:
         elif reason == "partial_match":
             reward = PARTIAL_STEP_REWARDS[current_step]
 
+        task_grader = TASK_GRADERS.get(self.current_task["task"], grade_logic_task)
+        task_score = task_grader(action.review, self.current_task)
+        scores = {
+            "code_review_security": grade_security_task(action.review),
+            "code_review_logic": grade_logic_task(action.review),
+            "code_review_style": grade_style_task(action.review),
+        }
+
         self.step_count += 1
         self._done = self.step_count >= self.max_steps
 
@@ -422,6 +534,8 @@ class CodeReviewEnv:
                 "difficulty": self.current_task["difficulty"],
                 "reason": reason,
                 "verifier": verifier_success,
+                "task_score": task_score,
+                "task_scores": scores,
             },
         )
 
