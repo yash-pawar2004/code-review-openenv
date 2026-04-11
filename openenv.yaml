@@ -42,6 +42,20 @@ observation_space:
     step:
       type: integer
       description: Current phase of the 3-step review episode
+    history:
+      type: array
+      items:
+        type: string
+      description: Previous review comments from earlier steps in the same episode
+    lines_of_code:
+      type: integer
+      description: Number of code lines in the current snippet
+    issue_type:
+      type: string
+      description: Canonical issue family for the current task (bug/style/security)
+    hint_level:
+      type: integer
+      description: Hint intensity for the task (0 hard, 1 medium, 2 easy)
 
 action_space:
   type: object

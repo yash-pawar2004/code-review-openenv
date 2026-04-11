@@ -12,7 +12,10 @@ import sys
 sys.path.insert(0, ".")
 
 from server.environment import DATASET, VERIFIERS, CodeReviewEnv, grade
+from server.environment import grade_security_task, grade_logic_task, grade_style_task
+from server.app import app
 from models import CodeAction
+from fastapi.testclient import TestClient
 
 
 PASS = "\033[92mPASS\033[0m"
@@ -35,6 +38,23 @@ check("partial match step 1 -> 0.15", grade("shared state issue", ["mutable"], [
 check("no match step 1 -> 0.0", grade("looks fine", ["zero", "division"], step_number=1) == 0.0)
 check("exact match step 3 -> 0.4", grade("check for zero before division", ["zero", "division"], step_number=3) == 0.4)
 check("partial match step 3 -> 0.2", grade("shared state issue", ["mutable"], ["shared state"], 3) == 0.2)
+check(
+    "fuzzy/synonym matching gives non-zero credit",
+    grade("This has zero division risk", ["division by zero"], ["zero division"], 1) > 0.0,
+)
+
+
+print("\n-- Task Graders --------------------------------------------")
+security_synonym_score = grade_security_task("Use prepared statements to prevent SQLi attacks.")
+logic_synonym_score = grade_logic_task("This can crash due to a mutable default list being reused.")
+style_synonym_score = grade_style_task("Prefer a comprehension here; current loop is non-idiomatic.")
+check("security synonym score in range", 0.0 < security_synonym_score < 1.0, f"got {security_synonym_score}")
+check("logic synonym score in range", 0.0 < logic_synonym_score < 1.0, f"got {logic_synonym_score}")
+check("style synonym score in range", 0.0 < style_synonym_score < 1.0, f"got {style_synonym_score}")
+check(
+    "grader fallback score in range",
+    0.0 < grade_security_task("completely unrelated response") < 1.0,
+)
 
 
 print("\n-- Verifiers ------------------------------------------------")
@@ -45,11 +65,11 @@ check("unbound_local_scope verifier passes", VERIFIERS["unbound_local_scope"]() 
 
 
 print("\n-- Dataset --------------------------------------------------")
-check("dataset has at least 30 entries", len(DATASET) >= 30)
+check("dataset has at least 40 entries", len(DATASET) >= 40)
 task_counts = {task: sum(1 for entry in DATASET if entry["task"] == task) for task in ("style", "bug", "security")}
-check("style has 10 entries", task_counts["style"] == 10, f"got {task_counts['style']}")
-check("bug has 10 entries", task_counts["bug"] == 10, f"got {task_counts['bug']}")
-check("security has 10 entries", task_counts["security"] == 10, f"got {task_counts['security']}")
+check("style has at least 10 entries", task_counts["style"] >= 10, f"got {task_counts['style']}")
+check("bug has at least 10 entries", task_counts["bug"] >= 10, f"got {task_counts['bug']}")
+check("security has at least 10 entries", task_counts["security"] >= 10, f"got {task_counts['security']}")
 
 valid_difficulties = {"easy", "medium", "hard"}
 for entry in DATASET:
@@ -62,6 +82,18 @@ for entry in DATASET:
     )
     if "verifier" in entry:
         check(f"{entry['task']} verifier is registered", entry["verifier"] in VERIFIERS)
+
+
+print("\n-- Grader Range --------------------------------------------")
+for entry in DATASET:
+    review = " ".join(entry["keywords"][:2])
+    if entry["task"] == "security":
+        score = grade_security_task(review, entry)
+    elif entry["task"] == "bug":
+        score = grade_logic_task(review, entry)
+    else:
+        score = grade_style_task(review, entry)
+    check(f"{entry['task']} score in (0,1)", 0.0 < score < 1.0, f"got {score}")
 
 
 print("\n-- Multi-step lifecycle ------------------------------------")
@@ -111,6 +143,40 @@ check("verifier can grant reward without keyword match", rv.reward == 0.3, f"got
 check("verifier priority reason is no_match", rv.info.get("reason") == "no_match", f"got {rv.info.get('reason')}")
 check("verifier priority flag is true", rv.info.get("verifier") is True, f"got {rv.info.get('verifier')}")
 random.choice = original_choice
+
+
+print("\n-- Session isolation ---------------------------------------")
+client = TestClient(app)
+session_a = "session-a"
+session_b = "session-b"
+
+ra = client.post("/reset", headers={"X-Session-Id": session_a})
+rb = client.post("/reset", headers={"X-Session-Id": session_b})
+check("session A reset status 200", ra.status_code == 200, f"got {ra.status_code}")
+check("session B reset status 200", rb.status_code == 200, f"got {rb.status_code}")
+
+sa0 = client.get("/state", headers={"X-Session-Id": session_a}).json()
+sb0 = client.get("/state", headers={"X-Session-Id": session_b}).json()
+check("session A starts at step_count 0", sa0.get("step_count") == 0, f"got {sa0}")
+check("session B starts at step_count 0", sb0.get("step_count") == 0, f"got {sb0}")
+
+step_a = client.post("/step", headers={"X-Session-Id": session_a}, json={"review": "there is an issue"})
+check("session A step status 200", step_a.status_code == 200, f"got {step_a.status_code}")
+
+sa1 = client.get("/state", headers={"X-Session-Id": session_a}).json()
+sb1 = client.get("/state", headers={"X-Session-Id": session_b}).json()
+check("session A increments independently", sa1.get("step_count") == 1, f"got {sa1}")
+check("session B remains isolated", sb1.get("step_count") == 0, f"got {sb1}")
+
+default_reset = client.post("/reset")
+default_state = client.get("/state").json()
+check("default session reset status 200", default_reset.status_code == 200, f"got {default_reset.status_code}")
+check("default session state available", "step_count" in default_state, f"got {default_state}")
+
+dataset_resp = client.get("/dataset")
+dataset_json = dataset_resp.json()
+check("dataset endpoint status 200", dataset_resp.status_code == 200, f"got {dataset_resp.status_code}")
+check("dataset endpoint count >= 40", dataset_json.get("count", 0) >= 40, f"got {dataset_json.get('count')}")
 
 
 print("\n-- Summary --------------------------------------------------")

@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional, Any
 
 
@@ -8,6 +8,10 @@ class Observation(BaseModel):
     description: str
     difficulty: str
     step: int
+    history: list[str] = Field(default_factory=list)
+    lines_of_code: int = 0
+    issue_type: str = ""
+    hint_level: int = 0
 
 
 class Action(BaseModel):
