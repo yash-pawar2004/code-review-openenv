@@ -17,6 +17,7 @@ DATASET = [
         "description": "Identify a code style issue in this snippet.",
         "keywords": ["enumerate", "range(len", "manual indexing"],
         "synonyms": ["iteration", "loop style", "readability"],
+        "grader": "server.environment:grade_style_task",
     },
     {
         "task": "style",
@@ -33,6 +34,7 @@ DATASET = [
         "description": "Identify the style issue in this function body.",
         "keywords": ["unused variable", "unused_total", "dead code"],
         "synonyms": ["cleanup", "readability", "unused"],
+        "grader": "server.environment:grade_style_task",
     },
     {
         "task": "style",

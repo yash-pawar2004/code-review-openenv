@@ -90,6 +90,15 @@ tasks:
   - name: code_review_style
     grader: server.environment:grade_style_task
 
+  - name: division_by_zero
+    grader: server.environment:grade_logic_task
+
+  - name: mutable_default_argument
+    grader: server.environment:grade_logic_task
+
+  - name: sql_injection
+    grader: server.environment:grade_security_task
+
 episode:
   max_steps: 3
   done_after_first_step: false
