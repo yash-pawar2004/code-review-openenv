@@ -26,6 +26,10 @@ SYSTEM_PROMPT = (
 )
 
 
+def clamp_task_score(score: float) -> float:
+    return max(0.01, min(float(score), 0.99))
+
+
 def _sanitize(value: str) -> str:
     return value.replace("\n", " ").replace("\r", " ").strip()
 
@@ -82,8 +86,9 @@ def run_inference() -> float:
         print(
             f"[STEP] step=1 action=null reward=0.00 done=true error={error}"
         )
-        print("[END] success=false steps=1 score=0.00 rewards=0.00")
-        return 0.0
+        init_score = clamp_task_score(0.0)
+        print(f"[END] success=false steps=1 score={init_score:.2f} rewards=0.00")
+        return init_score
 
     openai_client = None
     openai_init_error = "null"
@@ -150,7 +155,7 @@ def run_inference() -> float:
         done = step_done
 
     total_reward = sum(rewards)
-    score = min(1.0, max(0.0, total_reward))
+    score = clamp_task_score(total_reward)
     success = not had_error
     rewards_str = ",".join(f"{r:.2f}" for r in rewards)
 

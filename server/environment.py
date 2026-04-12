@@ -362,10 +362,10 @@ def evaluate_review(
 def grade(review: str, keywords: list[str], synonyms: Optional[list[str]] = None, step_number: int = 1) -> float:
     reason = evaluate_review(review, keywords, synonyms, step_number)
     if reason == "exact_match":
-        return STEP_REWARDS[step_number]
+        return clamp_task_score(STEP_REWARDS[step_number])
     if reason == "partial_match":
-        return PARTIAL_STEP_REWARDS[step_number]
-    return 0.0
+        return clamp_task_score(PARTIAL_STEP_REWARDS[step_number])
+    return clamp_task_score(0.01)
 
 
 def clamp_task_score(score: float) -> float:
@@ -679,11 +679,11 @@ class CodeReviewEnv:
                 except Exception:
                     verifier_success = False
 
-        reward = 0.0
+        reward = clamp_task_score(0.01)
         if verifier_success or reason == "exact_match":
-            reward = STEP_REWARDS[current_step]
+            reward = clamp_task_score(STEP_REWARDS[current_step])
         elif reason == "partial_match":
-            reward = PARTIAL_STEP_REWARDS[current_step]
+            reward = clamp_task_score(PARTIAL_STEP_REWARDS[current_step])
 
         task_grader = TASK_GRADERS.get(self.current_task["task"], grade_logic_task)
         task_score = task_grader(action.review, self.current_task)

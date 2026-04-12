@@ -35,7 +35,7 @@ def check(name: str, condition: bool, detail: str = ""):
 print("\n-- Grade function ------------------------------------------")
 check("exact match step 1 -> 0.3", grade("division by zero bug", ["zero", "division"], step_number=1) == 0.3)
 check("partial match step 1 -> 0.15", grade("shared state issue", ["mutable"], ["shared state"], 1) == 0.15)
-check("no match step 1 -> 0.0", grade("looks fine", ["zero", "division"], step_number=1) == 0.0)
+check("no match step 1 -> 0.01", grade("looks fine", ["zero", "division"], step_number=1) == 0.01)
 check("exact match step 3 -> 0.4", grade("check for zero before division", ["zero", "division"], step_number=3) == 0.4)
 check("partial match step 3 -> 0.2", grade("shared state issue", ["mutable"], ["shared state"], 3) == 0.2)
 check(
