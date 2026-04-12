@@ -36,10 +36,10 @@ def grade_task_sql_injection(*args: Any, **kwargs: Any) -> float:
 
 
 DISCOVERABLE_GRADERS = {
-    "code_review_style": "graders:grade_task_code_review_style",
-    "code_review_logic": "graders:grade_task_code_review_logic",
-    "code_review_security": "graders:grade_task_code_review_security",
-    "division_by_zero": "graders:grade_task_division_by_zero",
-    "mutable_default_argument": "graders:grade_task_mutable_default_argument",
-    "sql_injection": "graders:grade_task_sql_injection",
+    "code_review_style": grade_task_code_review_style,
+    "code_review_logic": grade_task_code_review_logic,
+    "code_review_security": grade_task_code_review_security,
+    "division_by_zero": grade_task_division_by_zero,
+    "mutable_default_argument": grade_task_mutable_default_argument,
+    "sql_injection": grade_task_sql_injection,
 }
