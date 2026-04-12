@@ -16,6 +16,7 @@ sys.path.insert(0, ".")
 
 from server.environment import DATASET, VERIFIERS, CodeReviewEnv, grade
 from server.environment import grade_security_task, grade_logic_task, grade_style_task
+from server.environment import OPENENV_AGENT_TASKS, load_grader_fn
 from server.app import app
 from models import CodeAction
 from fastapi.testclient import TestClient
@@ -74,6 +75,43 @@ _grader_tasks = sum(
     1 for t in _manifest_tasks if isinstance(t, dict) and str(t.get("grader", "")).strip()
 )
 check("openenv.yaml has at least 3 tasks with grader", _grader_tasks >= 3, f"got {_grader_tasks}")
+_grader_paths = [
+    str(t.get("grader", "")).strip()
+    for t in _manifest_tasks
+    if isinstance(t, dict) and str(t.get("grader", "")).strip() and t.get("enabled", True) is not False
+]
+check(
+    "openenv.yaml has at least 3 unique grader entrypoints",
+    len(set(_grader_paths)) >= 3,
+    f"got {len(set(_grader_paths))} unique",
+)
+for _t in _manifest_tasks:
+    if not isinstance(_t, dict) or not str(_t.get("grader", "")).strip():
+        continue
+    check(
+        f"task {_t.get('id', '?')} has difficulty easy|medium|hard",
+        _t.get("difficulty") in ("easy", "medium", "hard"),
+        f"got {_t.get('difficulty')}",
+    )
+    check(
+        f"task {_t.get('id', '?')} is enabled",
+        _t.get("enabled", True) is not False,
+        f"got {_t.get('enabled')}",
+    )
+
+print("\n-- OPENENV_AGENT_TASKS graders -----------------------------")
+for spec in OPENENV_AGENT_TASKS:
+    if spec.get("enabled") is False:
+        continue
+    row = next(e for e in DATASET if e.get("manifest_id") == spec["id"])
+    fn = load_grader_fn(spec["grader"])
+    review = " ".join(row["keywords"][: min(3, len(row["keywords"]))])
+    gscore = fn(review, row)
+    check(
+        f"load_grader_fn({spec['id']}) returns score in [0,1]",
+        0.0 <= gscore <= 1.0,
+        f"got {gscore}",
+    )
 
 print("\n-- Dataset --------------------------------------------------")
 check("every dataset row has grader", all("grader" in e and e["grader"] for e in DATASET))
@@ -168,8 +206,8 @@ client = TestClient(app)
 session_a = "session-a"
 session_b = "session-b"
 
-ra = client.post("/reset", headers={"X-Session-Id": session_a})
-rb = client.post("/reset", headers={"X-Session-Id": session_b})
+ra = client.post("/reset", headers={"X-Session-Id": session_a}, json={})
+rb = client.post("/reset", headers={"X-Session-Id": session_b}, json={})
 check("session A reset status 200", ra.status_code == 200, f"got {ra.status_code}")
 check("session B reset status 200", rb.status_code == 200, f"got {rb.status_code}")
 
@@ -191,7 +229,7 @@ sb1 = client.get("/state", headers={"X-Session-Id": session_b}).json()
 check("session A increments independently", sa1.get("step_count") == 1, f"got {sa1}")
 check("session B remains isolated", sb1.get("step_count") == 0, f"got {sb1}")
 
-default_reset = client.post("/reset")
+default_reset = client.post("/reset", json={})
 default_state = client.get("/state").json()
 check("default session reset status 200", default_reset.status_code == 200, f"got {default_reset.status_code}")
 check("default session state available", "step_count" in default_state, f"got {default_state}")
@@ -218,6 +256,15 @@ check(
     "tasks endpoint reports >= 3 graded tasks",
     tasks_json.get("tasks_with_grader_count", 0) >= 3,
     f"got {tasks_json.get('tasks_with_grader_count')}",
+)
+
+pin = client.post("/reset", json={"task_id": "code_review_style"})
+check("reset with task_id status 200", pin.status_code == 200, f"got {pin.status_code}")
+pin_json = pin.json()
+check(
+    "pinned reset is style task",
+    pin_json.get("task") == "style" and pin_json.get("difficulty") == "easy",
+    f"got {pin_json.get('task')} {pin_json.get('difficulty')}",
 )
 
 

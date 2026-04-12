@@ -1,6 +1,8 @@
 spec_version: 1
 name: code_review_env
 type: space
+tags:
+  - openenv
 runtime: fastapi
 version: "1.0.0"
 description: >
@@ -81,29 +83,41 @@ reward:
     Some tasks include verifier-based checks for controlled bug detection.
 
 tasks:
-  - id: code_review_security
-    name: code_review_security
-    grader: server.environment:grade_security_task
+  - id: code_review_style
+    name: code_review_style
+    difficulty: easy
+    enabled: true
+    grader: "server.environment:grade_task_code_review_style"
 
   - id: code_review_logic
     name: code_review_logic
-    grader: server.environment:grade_logic_task
+    difficulty: medium
+    enabled: true
+    grader: "server.environment:grade_task_code_review_logic"
 
-  - id: code_review_style
-    name: code_review_style
-    grader: server.environment:grade_style_task
+  - id: code_review_security
+    name: code_review_security
+    difficulty: hard
+    enabled: true
+    grader: "server.environment:grade_task_code_review_security"
 
   - id: division_by_zero
     name: division_by_zero
-    grader: server.environment:grade_logic_task
+    difficulty: easy
+    enabled: true
+    grader: "server.environment:grade_task_division_by_zero"
 
   - id: mutable_default_argument
     name: mutable_default_argument
-    grader: server.environment:grade_logic_task
+    difficulty: medium
+    enabled: true
+    grader: "server.environment:grade_task_mutable_default_argument"
 
   - id: sql_injection
     name: sql_injection
-    grader: server.environment:grade_security_task
+    difficulty: easy
+    enabled: true
+    grader: "server.environment:grade_task_sql_injection"
 
 episode:
   max_steps: 3

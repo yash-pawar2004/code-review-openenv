@@ -8,6 +8,8 @@ Stdout is intentionally restricted to:
 import os
 import sys
 from collections import defaultdict
+from typing import Optional
+
 from openai import OpenAI
 
 from client import CodeReviewClient
@@ -19,6 +21,14 @@ MODEL_NAME = os.getenv("MODEL_NAME", "gpt-4o-mini")
 API_BASE_URL = os.getenv("API_BASE_URL", "https://api.openai.com/v1")
 API_TOKEN = os.getenv("HF_TOKEN") or os.getenv("OPENAI_API_KEY")
 BENCHMARK_MODE = os.getenv("BENCHMARK_MODE", "false").lower() == "true"
+INFERENCE_SINGLE_EPISODE = os.getenv("INFERENCE_SINGLE_EPISODE", "false").lower() == "true"
+
+# Easy / medium / hard manifest tasks (must match openenv.yaml and DATASET manifest_id).
+BENCHMARK_TASK_IDS = (
+    "code_review_style",
+    "code_review_logic",
+    "code_review_security",
+)
 
 SYSTEM_PROMPT = (
     "You are an expert code reviewer. "
@@ -66,38 +76,20 @@ def build_user_message(obs: dict) -> str:
     )
 
 
-def run_inference() -> float:
-    print(f"[START] task={TASK_NAME} env={ENV_NAME} model={MODEL_NAME}")
-
-    rewards: list[float] = []
-    done = False
-    step_no = 0
+def _run_one_episode(
+    env_client: CodeReviewClient,
+    openai_client: Optional[OpenAI],
+    openai_init_error: str,
+    obs: dict,
+    step_no: int,
+    manifest_label: str,
+    failure_by_task: defaultdict,
+    failure_by_difficulty: defaultdict,
+) -> tuple[list[float], bool, int]:
+    """Returns (episode_rewards, had_error, next_global_step_index)."""
     had_error = False
-    obs: dict = {}
-    failure_by_task = defaultdict(int)
-    failure_by_difficulty = defaultdict(int)
-
-    try:
-        env_client = CodeReviewClient(base_url=ENV_URL)
-        obs = _as_observation_dict(env_client.reset())
-        obs.setdefault("step", 1)
-    except Exception as exc:
-        error = _sanitize(str(exc)) or "environment_init_failed"
-        init_reward = clamp_task_score(0.0)
-        print(
-            f"[STEP] step=1 action=null reward={init_reward:.2f} done=true error={error}"
-        )
-        init_score = clamp_task_score(0.0)
-        print(f"[END] success=false steps=1 score={init_score:.2f} rewards={init_reward:.2f}")
-        return init_score
-
-    openai_client = None
-    openai_init_error = "null"
-    try:
-        openai_client = OpenAI(api_key=API_TOKEN, base_url=API_BASE_URL)
-    except Exception as exc:
-        openai_init_error = _sanitize(str(exc))
-
+    ep_rewards: list[float] = []
+    done = False
     while not done:
         step_no += 1
         action = ""
@@ -149,19 +141,115 @@ def run_inference() -> float:
         )
 
         if reward <= clamp_task_score(0.0) and step_done:
+            failure_by_task[manifest_label] += 1
             failure_by_task[current_task] += 1
             failure_by_difficulty[current_difficulty] += 1
 
-        rewards.append(reward)
+        ep_rewards.append(reward)
         done = step_done
 
-    total_reward = sum(rewards)
-    score = clamp_task_score(total_reward)
+    return ep_rewards, had_error, step_no
+
+
+def run_inference() -> float:
+    print(f"[START] task={TASK_NAME} env={ENV_NAME} model={MODEL_NAME}")
+
+    all_rewards: list[float] = []
+    episode_returns: list[float] = []
+    step_no = 0
+    had_error = False
+    failure_by_task = defaultdict(int)
+    failure_by_difficulty = defaultdict(int)
+
+    try:
+        env_client = CodeReviewClient(base_url=ENV_URL)
+    except Exception as exc:
+        error = _sanitize(str(exc)) or "environment_init_failed"
+        init_reward = clamp_task_score(0.0)
+        print(
+            f"[STEP] step=1 action=null reward={init_reward:.2f} done=true error={error}"
+        )
+        init_score = clamp_task_score(0.0)
+        print(f"[END] success=false steps=1 score={init_score:.2f} rewards={init_reward:.2f}")
+        return init_score
+
+    openai_client = None
+    openai_init_error = "null"
+    try:
+        openai_client = OpenAI(api_key=API_TOKEN, base_url=API_BASE_URL)
+    except Exception as exc:
+        openai_init_error = _sanitize(str(exc))
+
+    if INFERENCE_SINGLE_EPISODE:
+        try:
+            obs = _as_observation_dict(env_client.reset())
+            obs.setdefault("step", 1)
+        except Exception as exc:
+            error = _sanitize(str(exc)) or "environment_init_failed"
+            init_reward = clamp_task_score(0.0)
+            print(
+                f"[STEP] step=1 action=null reward={init_reward:.2f} done=true error={error}"
+            )
+            init_score = clamp_task_score(0.0)
+            print(f"[END] success=false steps=1 score={init_score:.2f} rewards={init_reward:.2f}")
+            return init_score
+        ep_r, ep_err, step_no = _run_one_episode(
+            env_client,
+            openai_client,
+            openai_init_error,
+            obs,
+            step_no,
+            "random",
+            failure_by_task,
+            failure_by_difficulty,
+        )
+        all_rewards = ep_r
+        had_error = ep_err
+        score = clamp_task_score(sum(all_rewards))
+    else:
+        for manifest_id in BENCHMARK_TASK_IDS:
+            try:
+                obs = _as_observation_dict(env_client.reset(task_id=manifest_id))
+                obs.setdefault("step", 1)
+            except Exception as exc:
+                had_error = True
+                error = _sanitize(str(exc)) or "reset_failed"
+                step_no += 1
+                r = clamp_task_score(0.0)
+                print(
+                    f"[STEP] step={step_no} action=null reward={r:.2f} done=true error={error}"
+                )
+                all_rewards.append(r)
+                break
+
+            ep_r, ep_err, step_no = _run_one_episode(
+                env_client,
+                openai_client,
+                openai_init_error,
+                obs,
+                step_no,
+                manifest_id,
+                failure_by_task,
+                failure_by_difficulty,
+            )
+            all_rewards.extend(ep_r)
+            episode_returns.append(sum(ep_r))
+            if ep_err:
+                had_error = True
+                break
+
+        if episode_returns:
+            score = clamp_task_score(sum(episode_returns) / len(episode_returns))
+        elif all_rewards:
+            score = clamp_task_score(sum(all_rewards))
+        else:
+            score = clamp_task_score(0.0)
+
     success = not had_error
-    rewards_str = ",".join(f"{r:.2f}" for r in rewards)
+    rewards_str = ",".join(f"{r:.2f}" for r in all_rewards)
 
     print(
-        f"[END] success={str(success).lower()} steps={len(rewards)} "
+        f"[END] success={str(success).lower()} steps={len(all_rewards)} "
         f"score={score:.2f} rewards={rewards_str}"
     )
 

@@ -7,7 +7,7 @@ from typing import Any, Optional
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import yaml
-from fastapi import FastAPI, HTTPException, Header
+from fastapi import Body, FastAPI, HTTPException, Header
 from pydantic import BaseModel, Field
 import uvicorn
 
@@ -38,6 +38,12 @@ def _openenv_spec() -> dict[str, Any]:
 
 class StepRequest(BaseModel):
     review: str
+
+
+class ResetBody(BaseModel):
+    """Optional body: set task_id to pin a manifest task (see server.environment.DATASET manifest_id)."""
+
+    task_id: Optional[str] = None
 
 
 class ResetResponse(BaseModel):
@@ -77,9 +83,16 @@ def _get_session_env(session_header: Optional[str]) -> CodeReviewEnv:
 
 
 @app.post("/reset", response_model=ResetResponse)
-def reset(x_session_id: Optional[str] = Header(default=None, alias="X-Session-Id")):
+def reset(
+    body: Optional[ResetBody] = Body(default=None),
+    x_session_id: Optional[str] = Header(default=None, alias="X-Session-Id"),
+):
     env = _get_session_env(x_session_id)
-    obs = env.reset()
+    task_id = body.task_id if body is not None else None
+    try:
+        obs = env.reset(manifest_task_id=task_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     return obs
 
 
@@ -141,7 +154,13 @@ def tasks_manifest():
     tasks = spec.get("tasks")
     if not isinstance(tasks, list):
         tasks = []
-    with_grader = [t for t in tasks if isinstance(t, dict) and t.get("grader")]
+    with_grader = [
+        t
+        for t in tasks
+        if isinstance(t, dict)
+        and str(t.get("grader", "")).strip()
+        and t.get("enabled", True) is not False
+    ]
     return {"tasks": tasks, "tasks_with_grader_count": len(with_grader)}
 
 

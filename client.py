@@ -11,15 +11,16 @@ Usage:
 """
 
 import requests
-from typing import Any
+from typing import Any, Optional
 
 
 class CodeReviewClient:
     def __init__(self, base_url: str = "http://localhost:7860"):
         self.base_url = base_url.rstrip("/")
 
-    def reset(self) -> dict[str, Any]:
-        resp = requests.post(f"{self.base_url}/reset")
+    def reset(self, task_id: Optional[str] = None) -> dict[str, Any]:
+        payload = {"task_id": task_id} if task_id else {}
+        resp = requests.post(f"{self.base_url}/reset", json=payload)
         resp.raise_for_status()
         return resp.json()
 
