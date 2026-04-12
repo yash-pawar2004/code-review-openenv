@@ -8,6 +8,9 @@ Usage:
 """
 
 import sys
+from pathlib import Path
+
+import yaml
 
 sys.path.insert(0, ".")
 
@@ -64,7 +67,16 @@ check("index_out_of_bounds verifier passes", VERIFIERS["index_out_of_bounds"]() 
 check("unbound_local_scope verifier passes", VERIFIERS["unbound_local_scope"]() is True)
 
 
+print("\n-- openenv.yaml task graders --------------------------------")
+_spec = yaml.safe_load(Path("openenv.yaml").read_text(encoding="utf-8")) or {}
+_manifest_tasks = _spec.get("tasks") or []
+_grader_tasks = sum(
+    1 for t in _manifest_tasks if isinstance(t, dict) and str(t.get("grader", "")).strip()
+)
+check("openenv.yaml has at least 3 tasks with grader", _grader_tasks >= 3, f"got {_grader_tasks}")
+
 print("\n-- Dataset --------------------------------------------------")
+check("every dataset row has grader", all("grader" in e and e["grader"] for e in DATASET))
 check("dataset has at least 40 entries", len(DATASET) >= 40)
 task_counts = {task: sum(1 for entry in DATASET if entry["task"] == task) for task in ("style", "bug", "security")}
 check("style has at least 10 entries", task_counts["style"] >= 10, f"got {task_counts['style']}")
@@ -146,6 +158,11 @@ check("verifier priority flag is true", rv.info.get("verifier") is True, f"got {
 random.choice = original_choice
 
 
+print("\n-- HTTP helpers --------------------------------------------")
+_client0 = TestClient(app)
+_health = _client0.get("/health").json()
+check("health status is healthy", _health.get("status") == "healthy", f"got {_health}")
+
 print("\n-- Session isolation ---------------------------------------")
 client = TestClient(app)
 session_a = "session-a"
@@ -183,6 +200,25 @@ dataset_resp = client.get("/dataset")
 dataset_json = dataset_resp.json()
 check("dataset endpoint status 200", dataset_resp.status_code == 200, f"got {dataset_resp.status_code}")
 check("dataset endpoint count >= 40", dataset_json.get("count", 0) >= 40, f"got {dataset_json.get('count')}")
+
+meta = client.get("/metadata")
+meta_json = meta.json()
+check("metadata endpoint status 200", meta.status_code == 200, f"got {meta.status_code}")
+check(
+    "metadata lists >= 3 tasks with grader",
+    isinstance(meta_json.get("tasks"), list)
+    and sum(1 for t in meta_json["tasks"] if isinstance(t, dict) and t.get("grader")) >= 3,
+    f"got {meta_json.get('tasks')}",
+)
+
+tasks_ep = client.get("/tasks")
+tasks_json = tasks_ep.json()
+check("tasks endpoint status 200", tasks_ep.status_code == 200, f"got {tasks_ep.status_code}")
+check(
+    "tasks endpoint reports >= 3 graded tasks",
+    tasks_json.get("tasks_with_grader_count", 0) >= 3,
+    f"got {tasks_json.get('tasks_with_grader_count')}",
+)
 
 
 print("\n-- Summary --------------------------------------------------")

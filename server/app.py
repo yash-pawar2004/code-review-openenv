@@ -1,9 +1,12 @@
 import sys
 import os
-from typing import Optional
+from functools import lru_cache
+from pathlib import Path
+from typing import Any, Optional
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+import yaml
 from fastapi import FastAPI, HTTPException, Header
 from pydantic import BaseModel, Field
 import uvicorn
@@ -14,6 +17,19 @@ from models import CodeAction, CodeObservation, CodeState, StepResult
 app = FastAPI(title="Code Review Environment", version="1.0.0")
 DEFAULT_SESSION_ID = "default"
 sessions: dict[str, CodeReviewEnv] = {DEFAULT_SESSION_ID: CodeReviewEnv()}
+
+
+def _project_root() -> Path:
+    return Path(__file__).resolve().parent.parent
+
+
+@lru_cache(maxsize=1)
+def _openenv_spec() -> dict[str, Any]:
+    path = _project_root() / "openenv.yaml"
+    if not path.is_file():
+        return {}
+    raw = yaml.safe_load(path.read_text(encoding="utf-8"))
+    return raw if isinstance(raw, dict) else {}
 
 
 # ---------------------------------------------------------------------------
@@ -97,7 +113,36 @@ def root():
 
 @app.get("/health")
 def health():
-    return {"status": "ok"}
+    return {"status": "healthy"}
+
+
+@app.get("/metadata")
+def metadata():
+    spec = _openenv_spec()
+    desc = spec.get("description")
+    if isinstance(desc, str):
+        description = " ".join(desc.split())
+    else:
+        description = ""
+    tasks = spec.get("tasks")
+    if not isinstance(tasks, list):
+        tasks = []
+    return {
+        "name": spec.get("name", "code_review_env"),
+        "description": description,
+        "version": spec.get("version"),
+        "tasks": tasks,
+    }
+
+
+@app.get("/tasks")
+def tasks_manifest():
+    spec = _openenv_spec()
+    tasks = spec.get("tasks")
+    if not isinstance(tasks, list):
+        tasks = []
+    with_grader = [t for t in tasks if isinstance(t, dict) and t.get("grader")]
+    return {"tasks": tasks, "tasks_with_grader_count": len(with_grader)}
 
 
 @app.get("/dataset")

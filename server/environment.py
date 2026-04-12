@@ -332,6 +332,14 @@ DATASET = [
     },
 ]
 
+_DEFAULT_GRADER_BY_TASK = {
+    "style": "server.environment:grade_style_task",
+    "bug": "server.environment:grade_logic_task",
+    "security": "server.environment:grade_security_task",
+}
+for _entry in DATASET:
+    _entry.setdefault("grader", _DEFAULT_GRADER_BY_TASK[_entry["task"]])
+
 STEP_REWARDS = {1: 0.3, 2: 0.3, 3: 0.4}
 PARTIAL_STEP_REWARDS = {1: 0.15, 2: 0.15, 3: 0.2}
 STEP_INSTRUCTIONS = {
