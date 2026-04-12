@@ -82,21 +82,12 @@ reward:
 
 tasks:
   - name: code_review_security
-    task_type: security
-    difficulty: hard
-    description: Detect security vulnerabilities in code review comments.
     grader: server.environment:grade_security_task
 
   - name: code_review_logic
-    task_type: bug
-    difficulty: medium
-    description: Identify logic and runtime bugs from code review comments.
     grader: server.environment:grade_logic_task
 
   - name: code_review_style
-    task_type: style
-    difficulty: easy
-    description: Detect style and readability issues from code review comments.
     grader: server.environment:grade_style_task
 
 episode:
