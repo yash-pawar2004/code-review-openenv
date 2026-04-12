@@ -151,22 +151,13 @@ def metadata():
 
 @app.get("/tasks")
 def tasks_manifest():
-    spec = _openenv_spec()
-    tasks = spec.get("tasks")
-    if not isinstance(tasks, list) or not tasks:
-        tasks = TASKS
-    with_grader = [
-        t
-        for t in tasks
-        if isinstance(t, dict)
-        and str(t.get("grader", "")).strip()
-        and t.get("enabled", True) is not False
-    ]
-    return {
-        "tasks": tasks,
-        "tasks_with_grader_count": len(with_grader),
-        "discoverable_tasks_with_grader_count": len(TASKS_WITH_GRADERS),
-    }
+    result = []
+    for t in TASKS:
+        task = dict(t)
+        if task.get("grader"):
+            task["grader"] = True
+        result.append(task)
+    return result
 
 
 @app.get("/dataset")
