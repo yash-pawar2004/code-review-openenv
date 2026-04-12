@@ -1,8 +1,13 @@
+spec_version: 1
 name: code_review_env
+type: space
+runtime: fastapi
 version: "1.0.0"
 description: >
   A reinforcement learning environment that simulates code review tasks.
   The agent receives a code snippet with an issue and must identify the problem.
+app: server.app:app
+port: 7860
 entrypoint: server.app:app
 health_check: /health
 

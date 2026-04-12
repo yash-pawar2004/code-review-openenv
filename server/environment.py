@@ -687,7 +687,7 @@ class CodeReviewEnv:
 
         task_grader = TASK_GRADERS.get(self.current_task["task"], grade_logic_task)
         task_score = task_grader(action.review, self.current_task)
-        scores = {
+        task_scores = {
             "code_review_security": grade_security_task(action.review),
             "code_review_logic": grade_logic_task(action.review),
             "code_review_style": grade_style_task(action.review),
@@ -703,13 +703,14 @@ class CodeReviewEnv:
             observation=obs,
             reward=reward,
             done=self._done,
+            task_scores=task_scores,
             info={
                 "task": self.current_task["task"],
                 "difficulty": self.current_task["difficulty"],
                 "reason": reason,
                 "verifier": verifier_success,
                 "task_score": task_score,
-                "task_scores": scores,
+                "task_scores": task_scores,
             },
         )
 

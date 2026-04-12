@@ -43,4 +43,5 @@ class StepResult(BaseModel):
     observation: Optional[CodeObservation]
     reward: float
     done: bool
+    task_scores: dict[str, float] = Field(default_factory=dict)
     info: dict[str, Any] = {}

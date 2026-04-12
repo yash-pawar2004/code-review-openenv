@@ -83,11 +83,12 @@ def run_inference() -> float:
         obs.setdefault("step", 1)
     except Exception as exc:
         error = _sanitize(str(exc)) or "environment_init_failed"
+        init_reward = clamp_task_score(0.0)
         print(
-            f"[STEP] step=1 action=null reward=0.00 done=true error={error}"
+            f"[STEP] step=1 action=null reward={init_reward:.2f} done=true error={error}"
         )
         init_score = clamp_task_score(0.0)
-        print(f"[END] success=false steps=1 score={init_score:.2f} rewards=0.00")
+        print(f"[END] success=false steps=1 score={init_score:.2f} rewards={init_reward:.2f}")
         return init_score
 
     openai_client = None
@@ -100,7 +101,7 @@ def run_inference() -> float:
     while not done:
         step_no += 1
         action = ""
-        reward = 0.0
+        reward = clamp_task_score(0.0)
         error = "null"
         step_done = False
         current_task = str(obs.get("task", "unknown"))
@@ -147,7 +148,7 @@ def run_inference() -> float:
             f"done={done_out} error={error}"
         )
 
-        if reward == 0.0 and step_done:
+        if reward <= clamp_task_score(0.0) and step_done:
             failure_by_task[current_task] += 1
             failure_by_difficulty[current_difficulty] += 1
 

@@ -112,6 +112,7 @@ r1 = env.step(CodeAction(review="There is a division by zero bug"))
 check("step 1 reward is 0.3", r1.reward == 0.3, f"got {r1.reward}")
 check("step 1 done is False", r1.done is False)
 check("next observation step is 2", r1.observation.step == 2, f"got {r1.observation.step}")
+check("step 1 has top-level task_scores", isinstance(r1.task_scores, dict) and len(r1.task_scores) == 3, f"got {r1.task_scores}")
 check("step 1 info reason", r1.info.get("reason") == "exact_match", f"got {r1.info.get('reason')}")
 check("step 1 info verifier true", r1.info.get("verifier") is True, f"got {r1.info.get('verifier')}")
 
@@ -162,6 +163,11 @@ check("session B starts at step_count 0", sb0.get("step_count") == 0, f"got {sb0
 
 step_a = client.post("/step", headers={"X-Session-Id": session_a}, json={"review": "there is an issue"})
 check("session A step status 200", step_a.status_code == 200, f"got {step_a.status_code}")
+check(
+    "session A step exposes top-level task_scores",
+    isinstance(step_a.json().get("task_scores"), dict) and len(step_a.json().get("task_scores", {})) == 3,
+    f"got {step_a.json()}",
+)
 
 sa1 = client.get("/state", headers={"X-Session-Id": session_a}).json()
 sb1 = client.get("/state", headers={"X-Session-Id": session_b}).json()

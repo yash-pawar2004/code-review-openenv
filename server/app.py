@@ -40,6 +40,7 @@ class StepResponse(BaseModel):
     observation: CodeObservation
     reward: float
     done: bool
+    task_scores: dict[str, float]
     info: dict
 
 
@@ -76,6 +77,7 @@ def step(request: StepRequest, x_session_id: Optional[str] = Header(default=None
             observation=result.observation,
             reward=result.reward,
             done=result.done,
+            task_scores=result.task_scores,
             info=result.info,
         )
     except RuntimeError as e:
