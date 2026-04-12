@@ -13,6 +13,7 @@ import uvicorn
 
 from server.environment import CodeReviewEnv, dataset_preview
 from models import CodeAction, CodeObservation, CodeState, StepResult
+from tasks import TASKS, TASKS_WITH_GRADERS
 
 app = FastAPI(title="Code Review Environment", version="1.0.0")
 DEFAULT_SESSION_ID = "default"
@@ -138,8 +139,8 @@ def metadata():
     else:
         description = ""
     tasks = spec.get("tasks")
-    if not isinstance(tasks, list):
-        tasks = []
+    if not isinstance(tasks, list) or not tasks:
+        tasks = TASKS
     return {
         "name": spec.get("name", "code_review_env"),
         "description": description,
@@ -152,8 +153,8 @@ def metadata():
 def tasks_manifest():
     spec = _openenv_spec()
     tasks = spec.get("tasks")
-    if not isinstance(tasks, list):
-        tasks = []
+    if not isinstance(tasks, list) or not tasks:
+        tasks = TASKS
     with_grader = [
         t
         for t in tasks
@@ -161,7 +162,11 @@ def tasks_manifest():
         and str(t.get("grader", "")).strip()
         and t.get("enabled", True) is not False
     ]
-    return {"tasks": tasks, "tasks_with_grader_count": len(with_grader)}
+    return {
+        "tasks": tasks,
+        "tasks_with_grader_count": len(with_grader),
+        "discoverable_tasks_with_grader_count": len(TASKS_WITH_GRADERS),
+    }
 
 
 @app.get("/dataset")
