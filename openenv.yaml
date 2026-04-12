@@ -7,7 +7,8 @@ runtime: fastapi
 version: "1.0.0"
 description: >
   A reinforcement learning environment that simulates code review tasks.
-  The agent receives a code snippet with an issue and must identify the problem.
+  The agent receives a code snippet with an issue and must identify the problem,
+  explain why it is problematic, and suggest a fix across three structured steps.
 app: server.app:app
 port: 7860
 entrypoint: server.app:app
@@ -30,6 +31,14 @@ interface:
     method: GET
     path: /state
     returns: CodeState
+
+  grade:
+    method: POST
+    path: /grade
+    body:
+      task_id: string
+      response: string
+    returns: GradeResponse
 
 observation_space:
   type: object
@@ -79,8 +88,8 @@ reward:
     Reward is deterministic and step-weighted:
     Step 1 (identify issue) -> 0.3
     Step 2 (explain issue) -> 0.3
-    Step 3 (suggest fix) -> 0.4
-    Some tasks include verifier-based checks for controlled bug detection.
+    Step 3 (suggest fix)   -> 0.4
+    Partial credit awarded for partially correct responses.
 
 tasks:
   - id: code_review_style
@@ -89,6 +98,7 @@ tasks:
     difficulty: easy
     enabled: true
     grader: "graders:grade_task_code_review_style"
+    grader_endpoint: "/grade"
 
   - id: code_review_logic
     name: code_review_logic
@@ -96,6 +106,7 @@ tasks:
     difficulty: medium
     enabled: true
     grader: "graders:grade_task_code_review_logic"
+    grader_endpoint: "/grade"
 
   - id: code_review_security
     name: code_review_security
@@ -103,6 +114,7 @@ tasks:
     difficulty: hard
     enabled: true
     grader: "graders:grade_task_code_review_security"
+    grader_endpoint: "/grade"
 
   - id: division_by_zero
     name: division_by_zero
@@ -110,6 +122,7 @@ tasks:
     difficulty: easy
     enabled: true
     grader: "graders:grade_task_division_by_zero"
+    grader_endpoint: "/grade"
 
   - id: mutable_default_argument
     name: mutable_default_argument
@@ -117,6 +130,7 @@ tasks:
     difficulty: medium
     enabled: true
     grader: "graders:grade_task_mutable_default_argument"
+    grader_endpoint: "/grade"
 
   - id: sql_injection
     name: sql_injection
@@ -124,6 +138,7 @@ tasks:
     difficulty: easy
     enabled: true
     grader: "graders:grade_task_sql_injection"
+    grader_endpoint: "/grade"
 
 episode:
   max_steps: 3

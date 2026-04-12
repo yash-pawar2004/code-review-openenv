@@ -28,7 +28,6 @@ DATASET = [
         "description": "Identify the style issue in this data transformation.",
         "keywords": ["list comprehension", "comprehension", "append loop"],
         "synonyms": ["inefficient loop", "verbose", "style issue"],
-        "grader": "server.environment:grade_style_task",
     },
     {
         "task": "style",
@@ -45,7 +44,6 @@ DATASET = [
         "code": "def process_data(d, x):\n    return d + x",
         "description": "Identify the readability issue in this function.",
         "keywords": ["variable naming", "descriptive name", "unclear name"],
-        "grader": "server.environment:grade_style_task",
     },
     {
         "task": "style",
@@ -62,7 +60,6 @@ DATASET = [
         "code": "items = list(range(10))\nfor item in list(items):\n    print(item)",
         "description": "Identify the unnecessary operation in this loop.",
         "keywords": ["unnecessary list", "redundant list", "list conversion"],
-        "grader": "server.environment:grade_style_task",
     },
     {
         "task": "style",
@@ -142,7 +139,6 @@ DATASET = [
         "description": "Identify the bug-prone comparison in this code.",
         "keywords": ["is none", "none comparison", "identity comparison"],
         "synonyms": ["comparison issue", "bug", "none handling"],
-        "grader": "server.environment:grade_logic_task",
     },
     {
         "task": "bug",
@@ -150,7 +146,6 @@ DATASET = [
         "code": "def find_user(users, target):\n    for user in users:\n        if user.id == target:\n            return user.name",
         "description": "Identify the bug in this function's control flow.",
         "keywords": ["missing return", "returns none", "no default return"],
-        "grader": "server.environment:grade_logic_task",
     },
     {
         "task": "bug",
@@ -159,7 +154,6 @@ DATASET = [
         "description": "Identify the bug in this function.",
         "keywords": ["unboundlocalerror", "scope", "global"],
         "verifier": "unbound_local_scope",
-        "grader": "server.environment:grade_logic_task",
     },
     {
         "task": "bug",
@@ -174,7 +168,6 @@ DATASET = [
         "code": "i = 0\nwhile i <= len(values):\n    print(values[i])\n    i += 1",
         "description": "Identify the bug in this loop termination condition.",
         "keywords": ["index error", "out of bounds", "< len"],
-        "grader": "server.environment:grade_logic_task",
     },
     {
         "task": "bug",
@@ -183,7 +176,6 @@ DATASET = [
         "description": "Identify the bug in this collection mutation.",
         "keywords": ["mutating while iterating", "remove during iteration", "skip elements"],
         "synonyms": ["bug", "list mutation", "iteration issue"],
-        "grader": "server.environment:grade_logic_task",
     },
     {
         "task": "security",

@@ -14,6 +14,7 @@ import uvicorn
 from server.environment import CodeReviewEnv, dataset_preview
 from models import CodeAction, CodeObservation, CodeState, StepResult
 from tasks import TASKS, TASKS_WITH_GRADERS
+from graders import GRADER_REGISTRY, call_grader, DISCOVERABLE_GRADERS
 
 app = FastAPI(title="Code Review Environment", version="1.0.0")
 DEFAULT_SESSION_ID = "default"
@@ -167,6 +168,37 @@ def tasks_manifest():
         "tasks_with_grader_count": len(with_grader),
         "discoverable_tasks_with_grader_count": len(TASKS_WITH_GRADERS),
     }
+
+
+class GradeRequest(BaseModel):
+    task_id: str
+    response: str
+
+
+class GradeResponse(BaseModel):
+    task_id: str
+    score: float
+    details: dict = {}
+
+
+@app.post("/grade", response_model=GradeResponse)
+def grade_endpoint(request: GradeRequest):
+    """
+    OpenEnv grader endpoint - called by validators to verify each grader works.
+    POST /grade {"task_id": "code_review_style", "response": "agent review text"}
+    Returns {"task_id": "...", "score": 0.01-0.99}
+    """
+    try:
+        score = call_grader(request.task_id, request.response)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+    return GradeResponse(
+        task_id=request.task_id,
+        score=score,
+        details={"grader": DISCOVERABLE_GRADERS.get(request.task_id, "")},
+    )
 
 
 @app.get("/dataset")
