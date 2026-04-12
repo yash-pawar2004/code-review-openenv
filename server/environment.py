@@ -50,6 +50,7 @@ DATASET = [
         "description": "Identify the style issue in this conditional.",
         "keywords": ["boolean comparison", "== true", "truthy"],
         "synonyms": ["style issue", "redundant", "readability"],
+        "grader": "server.environment:grade_style_task",
     },
     {
         "task": "style",
@@ -115,6 +116,7 @@ DATASET = [
         "description": "Identify the bug in this indexing logic.",
         "keywords": ["index", "out of bounds", "off by one"],
         "verifier": "index_out_of_bounds",
+        "grader": "server.environment:grade_logic_task",
     },
     {
         "task": "bug",
@@ -691,6 +693,11 @@ class CodeReviewEnv:
             reward = clamp_task_score(PARTIAL_STEP_REWARDS[current_step])
 
         task_grader = TASK_GRADERS.get(self.current_task["task"], grade_logic_task)
+        if "grader" in self.current_task:
+            grader_path = self.current_task["grader"]
+            module_name, func_name = grader_path.split(":")
+            module = __import__(module_name, fromlist=[func_name])
+            task_grader = getattr(module, func_name)
         task_score = task_grader(action.review, self.current_task)
         task_scores = {
             "code_review_security": grade_security_task(action.review),
