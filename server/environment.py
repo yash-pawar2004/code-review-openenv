@@ -94,6 +94,7 @@ DATASET = [
         "keywords": ["zero", "division", "divide by zero"],
         "synonyms": ["runtime error", "exception", "bug"],
         "verifier": "division_by_zero",
+        "grader": "server.environment:grade_logic_task",
     },
     {
         "task": "bug",
@@ -103,6 +104,7 @@ DATASET = [
         "keywords": ["mutable", "default", "shared state"],
         "synonyms": ["bug", "unexpected state", "side effect"],
         "verifier": "mutable_default_argument",
+        "grader": "server.environment:grade_logic_task",
     },
     {
         "task": "bug",
@@ -172,6 +174,7 @@ DATASET = [
         "description": "Identify a security vulnerability in this code snippet.",
         "keywords": ["sql injection", "parameterized", "prepared statement"],
         "synonyms": ["vulnerability", "unsafe query", "security issue"],
+        "grader": "server.environment:grade_security_task",
     },
     {
         "task": "security",
