@@ -11,37 +11,37 @@ tasks:
     name: "Code Review Style"
     description: "Easy code review task focused on spotting Python style issues."
     difficulty: easy
-    grader: grade_task_code_review_style
+    grader: graders:grade_task_code_review_style
 
   - id: code_review_logic
     name: "Code Review Logic"
     description: "Medium code review task focused on logic and control-flow bugs."
     difficulty: medium
-    grader: grade_task_code_review_logic
+    grader: graders:grade_task_code_review_logic
 
   - id: code_review_security
     name: "Code Review Security"
     description: "Hard code review task focused on security vulnerabilities."
     difficulty: hard
-    grader: grade_task_code_review_security
+    grader: graders:grade_task_code_review_security
 
   - id: division_by_zero
     name: "Division By Zero"
     description: "Easy bug-finding task for division-by-zero review comments."
     difficulty: easy
-    grader: grade_task_division_by_zero
+    grader: graders:grade_task_division_by_zero
 
   - id: mutable_default_argument
     name: "Mutable Default Argument"
     description: "Medium bug-finding task for shared mutable default arguments."
     difficulty: medium
-    grader: grade_task_mutable_default_argument
+    grader: graders:grade_task_mutable_default_argument
 
   - id: sql_injection
     name: "SQL Injection"
     description: "Easy security review task for unsafe SQL string concatenation."
     difficulty: easy
-    grader: grade_task_sql_injection
+    grader: graders:grade_task_sql_injection
 
 inference:
   runtime: python3.10
@@ -50,3 +50,4 @@ inference:
     HF_TOKEN: ${HF_TOKEN}
     API_BASE_URL: ${API_BASE_URL}
     MODEL_NAME: ${MODEL_NAME}
+

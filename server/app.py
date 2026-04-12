@@ -157,7 +157,7 @@ def tasks_manifest():
             "task_id": "code_review_style",
             "name": "Code Review Style",
             "difficulty": "easy",
-            "grader": True,
+            "grader": "graders:grade_task_code_review_style",
             "description": "Easy code review task focused on spotting Python style issues."
         },
         {
@@ -165,7 +165,7 @@ def tasks_manifest():
             "task_id": "code_review_logic",
             "name": "Code Review Logic",
             "difficulty": "medium",
-            "grader": True,
+            "grader": "graders:grade_task_code_review_logic",
             "description": "Medium code review task focused on logic and control-flow bugs."
         },
         {
@@ -173,7 +173,7 @@ def tasks_manifest():
             "task_id": "code_review_security",
             "name": "Code Review Security",
             "difficulty": "hard",
-            "grader": True,
+            "grader": "graders:grade_task_code_review_security",
             "description": "Hard code review task focused on security vulnerabilities."
         },
         {
@@ -181,7 +181,7 @@ def tasks_manifest():
             "task_id": "division_by_zero",
             "name": "Division By Zero",
             "difficulty": "easy",
-            "grader": True,
+            "grader": "graders:grade_task_division_by_zero",
             "description": "Easy bug-finding task for division-by-zero review comments."
         },
         {
@@ -189,7 +189,7 @@ def tasks_manifest():
             "task_id": "mutable_default_argument",
             "name": "Mutable Default Argument",
             "difficulty": "medium",
-            "grader": True,
+            "grader": "graders:grade_task_mutable_default_argument",
             "description": "Medium bug-finding task for shared mutable default arguments."
         },
         {
@@ -197,7 +197,7 @@ def tasks_manifest():
             "task_id": "sql_injection",
             "name": "SQL Injection",
             "difficulty": "easy",
-            "grader": True,
+            "grader": "graders:grade_task_sql_injection",
             "description": "Easy security review task for unsafe SQL string concatenation."
         }
     ]
