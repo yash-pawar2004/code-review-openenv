@@ -1,150 +1,90 @@
-spec_version: 1
+spec_version: "1"
 name: code_review_env
+description: "LLM agent environment for automated code review. The agent identifies bugs, security vulnerabilities, and style issues in Python code across three structured steps."
+version: "1.0.0"
 type: space
 tags:
   - openenv
 runtime: fastapi
-version: "1.0.0"
-description: >
-  A reinforcement learning environment that simulates code review tasks.
-  The agent receives a code snippet with an issue and must identify the problem,
-  explain why it is problematic, and suggest a fix across three structured steps.
-app: server.app:app
+app: app:app
 port: 7860
-entrypoint: server.app:app
+entrypoint: app:app
 health_check: /health
-
-interface:
-  reset:
-    method: POST
-    path: /reset
-    returns: CodeObservation
-
-  step:
-    method: POST
-    path: /step
-    body:
-      review: string
-    returns: StepResult
-
-  state:
-    method: GET
-    path: /state
-    returns: CodeState
-
-  grade:
-    method: POST
-    path: /grade
-    body:
-      task_id: string
-      response: string
-    returns: GradeResponse
 
 observation_space:
   type: object
   fields:
     code:
       type: string
-      description: Code snippet under review
-    task:
+      description: Python code snippet to review
+    task_type:
       type: string
-      description: Review category (style, bug, security)
-    description:
-      type: string
-      description: Instructions for the agent
+      description: Category of issue (bug, security, style)
     difficulty:
       type: string
-      description: Difficulty label for the current review task
+      description: easy, medium, or hard
     step:
       type: integer
-      description: Current phase of the 3-step review episode
+      description: Current step (1=identify, 2=explain, 3=fix)
+    description:
+      type: string
+      description: Task instructions for current step
     history:
       type: array
-      items:
-        type: string
-      description: Previous review comments from earlier steps in the same episode
-    lines_of_code:
-      type: integer
-      description: Number of code lines in the current snippet
-    issue_type:
-      type: string
-      description: Canonical issue family for the current task (bug/style/security)
-    hint_level:
-      type: integer
-      description: Hint intensity for the task (0 hard, 1 medium, 2 easy)
+      description: Previous agent responses in this episode
 
 action_space:
   type: object
   fields:
     review:
       type: string
-      description: Agent review comment describing the issue
+      description: Agent review comment
 
 reward:
+  type: float
   min: 0.0
   max: 1.0
-  type: float
-  description: >
-    Reward is deterministic and step-weighted:
-    Step 1 (identify issue) -> 0.3
-    Step 2 (explain issue) -> 0.3
-    Step 3 (suggest fix)   -> 0.4
-    Partial credit awarded for partially correct responses.
+  description: "Step-weighted reward. Step 1=0.3, Step 2=0.3, Step 3=0.4. Partial credit for near-correct responses."
 
 tasks:
-  - id: code_review_style
-    name: code_review_style
-    description: Easy code review task focused on spotting Python style issues.
+  - id: style_review
+    name: "Style Review"
+    description: "Identify Python style and readability issues (easy). Agent must spot anti-patterns like range(len()), unused variables, boolean comparisons."
     difficulty: easy
     enabled: true
-    grader: "graders:grade_task_code_review_style"
-    grader_endpoint: "/grade"
+    grader: "graders:grade_style"
 
-  - id: code_review_logic
-    name: code_review_logic
-    description: Medium code review task focused on logic and control-flow bugs.
+  - id: bug_review
+    name: "Bug Review"
+    description: "Identify logical bugs in Python code (medium). Agent must find issues like division by zero, mutable defaults, infinite loops."
     difficulty: medium
     enabled: true
-    grader: "graders:grade_task_code_review_logic"
-    grader_endpoint: "/grade"
+    grader: "graders:grade_bug"
 
-  - id: code_review_security
-    name: code_review_security
-    description: Hard code review task focused on security vulnerabilities.
+  - id: security_review
+    name: "Security Review"
+    description: "Identify security vulnerabilities in Python code (hard). Agent must find SQL injection, command injection, hardcoded secrets."
     difficulty: hard
     enabled: true
-    grader: "graders:grade_task_code_review_security"
-    grader_endpoint: "/grade"
+    grader: "graders:grade_security"
 
-  - id: division_by_zero
-    name: division_by_zero
-    description: Easy bug-finding task for division-by-zero review comments.
-    difficulty: easy
-    enabled: true
-    grader: "graders:grade_task_division_by_zero"
-    grader_endpoint: "/grade"
-
-  - id: mutable_default_argument
-    name: mutable_default_argument
-    description: Medium bug-finding task for shared mutable default arguments.
-    difficulty: medium
-    enabled: true
-    grader: "graders:grade_task_mutable_default_argument"
-    grader_endpoint: "/grade"
-
-  - id: sql_injection
-    name: sql_injection
-    description: Easy security review task for unsafe SQL string concatenation.
-    difficulty: easy
-    enabled: true
-    grader: "graders:grade_task_sql_injection"
-    grader_endpoint: "/grade"
+interface:
+  reset:
+    method: POST
+    path: /reset
+  step:
+    method: POST
+    path: /step
+  state:
+    method: GET
+    path: /state
+  grade:
+    method: POST
+    path: /grade
 
 episode:
   max_steps: 3
-  done_after_first_step: false
 
 deployment:
   type: docker
   port: 7860
-  health_check: /health
